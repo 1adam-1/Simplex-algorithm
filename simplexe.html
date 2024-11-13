@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplex Algorithm</title> <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        h5 {
+            color: #34495e;
+        }
+
+        input[type="text"] {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .pivot-column {
+            background-color: #e8f4f8;
+        }
+
+        #zInputs, #equations, #tableau, #pivotColumnIndex, #pivotRowIndex, #Gauss1, #Gauss2 {
+            margin-top: 10px;
+        }
+
+        #zvalue, #vbOutput, #vhbOutput {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h3>1-Objectif  </h3>
+    <h5>Entrer le nombre de variables</h5>
+    <input type="text" id="nbrZ" size="10">
+    <button onclick="submitNbrZ()">Submit</button>
+    <br><br>
+    <div id="zInputs"></div>
+    <br><br>
+    <h3>2-Equations</h3>
+    <h5>Entrer le nombre de d'équations</h5>
+    <input type="text" id="nbrE" size="10">
+    <button onclick="submitNbrE()">Submit</button>
+    <br><br>
+    <div id="equations"></div>
+    <br><br>
+    <button onclick="Tab()">Generer le Tableau</button>
+    <br><br>
+    <h3>3-Tableau</h3>
+    <br><br>
+    <div id="tableau"></div>
+    <br>
+
+    <br><br>
+    <h3>4-Colonne Pivot </h3>
+    <button onclick="PivotC()">Next Step</button>
+    <br>
+    <div id="pivotColumnIndex"></div>
+    <br>
+    <br>
+    <div id="VariableVE"></div>
+
+    <br><br>
+    <h3>5-Ligne Pivot</h3>
+    <button onclick="PivotR()">Next Step</button>
+    <br>
+    <div id="pivotRowIndex"></div>
+    <br>
+    <br>
+    <div id="VariableVS"></div>
+
+    <br><br>
+    <h3>6-Gauss</h3>
+    <h3>6.1-Etape 1</h3>
+    <button onclick="Gauss1()">Next Step</button>
+    <br>
+    <div id="Gauss1"></div>
+
+    <br><br>
+    <h3>6.2-Etape 2</h3>
+    <button onclick="Gauss2()">Next Step</button>
+    <br>
+    <div id="Gauss2"></div>
+
+    <br><br>
+    <h3>7-Test</h3>
+    <button onclick="Test()">Test</button>
+    <br>
+    <div id="zvalue"></div>
+    <div id="vbOutput"></div>
+    <div id="vhbOutput"></div>
+
+    <script>
+        var tableau;
+        var pivotRowIndex ;
+        var pivotColumnIndex;
+        var basicVariables = [];
+        var nonBasicVariables = [];
+        var nbrZ;
+        var nbrE;
+
+        function submitNbrZ() {
+            nbrZ = document.getElementById("nbrZ").value;
+            var zInputsDiv = document.getElementById("zInputs");
+            zInputsDiv.innerHTML = "Z=";
+            for (var i = 1; i <= nbrZ; i++) {
+                var input = document.createElement("input");
+                input.type = "text";
+                input.name = "var" + i;
+                input.size = "2";
+                zInputsDiv.appendChild(input);
+                zInputsDiv.appendChild(document.createTextNode(" x" + i));
+                if(i==nbrZ){break;}
+                zInputsDiv.appendChild(document.createTextNode(" + "));
+            }
+        }
+
+        function submitNbrE() {
+            nbrE = document.getElementById("nbrE").value;
+            var equationsDiv = document.getElementById("equations");
+
+            for (var j = 1; j <= nbrE; j++) {
+                var equationText = document.createElement("p");
+                equationText.textContent = "Equation " + j + ": ";
+                equationsDiv.appendChild(equationText);
+                for (var i = 1; i <= document.getElementById("nbrZ").value; i++) {
+                    var input = document.createElement("input");
+                    input.type = "text";
+                    input.name = "var" + j + i;
+                    input.size = "2";
+                    equationsDiv.appendChild(input);
+                    equationsDiv.appendChild(document.createTextNode(" x" + i));
+                    equationsDiv.appendChild(document.createTextNode(" + "));
+                }
+                equationsDiv.appendChild(document.createTextNode(" e" + j));
+                equationsDiv.appendChild(document.createTextNode(" = "));
+                var eqinput = document.createElement("input");
+                eqinput.type = "text";
+                eqinput.name = "eq" + j;
+                eqinput.size = "10";
+                equationsDiv.appendChild(eqinput);
+                equationsDiv.appendChild(document.createElement("br"));
+            }
+        }
+
+        function Tab() {
+    nbrZ = parseInt(document.getElementById("nbrZ").value);
+    nbrE = parseInt(document.getElementById("nbrE").value);
+    var tableauDiv = document.getElementById("tableau");
+
+
+    tableau = [];
+
+    // Première ligne on change le signe des variables avec z=1
+    var zCoefficients = [1];
+    for (var i = 1; i <= nbrZ; i++) {
+        var coefficient = -parseFloat(document.getElementsByName("var" + i)[0].value);
+        zCoefficients.push(coefficient);
+    }
+    // On remplit avec des 0 pour les variables d'écart
+    for (var i = 1; i <= nbrE + 1; i++) {
+        zCoefficients.push(0);
+    }
+    tableau.push(zCoefficients);
+
+    // lignes d'équations
+    for (var j = 1; j <= nbrE; j++) {
+        var equationCoefficients = [0]; // premier element=0
+        for (var i = 1; i <= nbrZ; i++) {
+            var coefficient = parseFloat(document.getElementsByName("var" + j + i)[0].value);
+            equationCoefficients.push(coefficient);
+        }
+        // variables d'ecarts
+        for (var i = 1; i <= nbrE; i++) {
+            equationCoefficients.push(i === j ? 1 : 0); // 1 si la variable d'écart correspond, 0 sinon
+        }
+
+        equationCoefficients.push(parseFloat(document.getElementsByName("eq" + j)[0].value));
+        tableau.push(equationCoefficients);
+    }
+
+
+
+
+    var table = "<table border='1'>";
+    for (var row = 0; row < tableau.length; row++) {
+        table += "<tr>";
+        for (var col = 0; col < tableau[row].length; col++) {
+            table += "<td>" + tableau[row][col] + "</td>";
+        }
+        table += "</tr>";
+    }
+    table += "</table>";
+    tableauDiv.innerHTML = table;
+}
+
+        function PivotC() {
+            var tab = tableau;
+            var minColumnIndex = 0;
+            var min = tab[0][0];
+
+            // trouver la plus pettite valeur
+            for (var i = 0; i < tab[0].length; i++) {
+                if (min > tab[0][i]) {
+                    min = tab[0][i];
+                    minColumnIndex = i;
+                }
+            }
+
+
+            // Construct the HTML table with the values from the minimum column
+            var table = "<table border='1'>";
+            for (var j = 0; j < tab.length; j++) {
+                table += "<tr>";
+                table += "<td>" + tab[j][minColumnIndex] + "</td>";
+                table += "</tr>";
+            }
+            table += "</table>";
+
+            // Display the portion of the tableau in the pivotColumnIndex div
+            document.getElementById("pivotColumnIndex").innerHTML = table;
+
+
+
+        }
+
+
+        function PivotR() {
+            var tab = tableau;
+            var pivotColumnIndex = 0;
+            var minRatio = Infinity;
+            var pivotRowIndex = 0;
+
+            // trouver la colonne pivot
+            for (var i = 0; i < tab[0].length; i++) {
+                if (tab[0][i] < tab[0][pivotColumnIndex]) {
+                    pivotColumnIndex = i;
+                }
+            }
+
+            /* on parcours le tableau et on divise les valeurs des solutions dans la colonne des termes constants
+             par les valeurs dans la colonne de la variable pivot.*/
+
+            for (var j = 1; j < tab.length; j++) {
+                if (tab[j][pivotColumnIndex] > 0) {
+                    var ratio = tab[j][tab[j].length - 1] / tab[j][pivotColumnIndex];
+                    if (ratio < minRatio && ratio >= 0) {
+                        minRatio = ratio;
+                        pivotRowIndex = j;
+                    }
+                }
+            }
+
+
+            // Construct the pivot row HTML
+            var pivotRowHTML = "<table border='1'><tr>";
+
+            for (var j = 0; j < tab[pivotRowIndex].length; j++) {
+                pivotRowHTML += "<td>" + tab[pivotRowIndex][j] + "</td>";
+            }
+
+            pivotRowHTML += "</tr></table>";
+
+            // Display the pivot row
+            document.getElementById("pivotRowIndex").innerHTML = pivotRowHTML;
+
+
+        }
+
+        function Gauss1(){
+            var tab = tableau;
+            var pivotColumnIndex = 0;
+            var minRatio = Infinity;
+            var pivotRowIndex = 0;
+            var pivotElement = 0;
+
+            // Find the pivot column index
+            for (var i = 0; i < tab[0].length; i++) {
+                if (tab[0][i] < tab[0][pivotColumnIndex]) {
+                    pivotColumnIndex = i;
+                }
+            }
+
+            // Find the pivot row index
+            for (var j = 1; j < tab.length; j++) {
+                if (tab[j][pivotColumnIndex] > 0) {
+                    var ratio = tab[j][tab[j].length - 1] / tab[j][pivotColumnIndex];
+                    if (ratio < minRatio && ratio >= 0) {
+                        minRatio = ratio;
+                        pivotRowIndex = j;
+                    }
+                }
+            }
+
+            //On trouve l'element pivot à partir de la ligne pivot et la colonne pivot
+            pivotElement = tab[pivotRowIndex][pivotColumnIndex];
+            //diviser chaque element de la ligne pivot sur l'element pivot
+            for (var j = 0; j < tab[pivotRowIndex].length; j++) {
+                tab[pivotRowIndex][j] /= pivotElement;
+            }
+            //affichage
+            var table = "<table border='1'>";
+            for (var row = 0; row < tab.length; row++) {
+                table += "<tr>";
+                for (var col = 0; col < tab[row].length; col++) {
+                    table += "<td>" + tab[row][col] + "</td>";
+                }
+                table += "</tr>";
+            }
+            table += "</table>";
+            document.getElementById("Gauss1").innerHTML = table;
+        }
+
+        function Gauss2(){
+    var tab = tableau;
+    var pivotColumnIndex = 0;
+    var minRatio = Infinity;
+    var pivotRowIndex = 0;
+    var pivotElement = 0;
+
+    // Find the pivot column index
+    for (var i = 0; i < tab[0].length; i++) {
+        if (tab[0][i] < tab[0][pivotColumnIndex]) {
+            pivotColumnIndex = i;
+        }
+    }
+
+    // Find the pivot row index
+    for (var j = 1; j < tab.length; j++) {
+        if (tab[j][pivotColumnIndex] > 0) {
+            var ratio = tab[j][tab[j].length - 1] / tab[j][pivotColumnIndex];
+            if (ratio < minRatio && ratio >= 0) {
+                minRatio = ratio;
+                pivotRowIndex = j;
+            }
+        }
+    }
+
+    pivotElement = tab[pivotRowIndex][pivotColumnIndex];
+
+    // Make the pivot element 1
+    for (var j = 0; j < tab[pivotRowIndex].length; j++) {
+        tab[pivotRowIndex][j] /= pivotElement;}
+
+
+    /* Pour chaque ligne differente de la ligne pivot, soustrait un multiple approprié de la
+    ligne pivot pour rendre l'element de la colonne pivot egal à zero*/
+
+   for (var i = 0; i < tab.length; i++) {
+        if (i !== pivotRowIndex) {
+            var factor = tab[i][pivotColumnIndex];
+            for (var j = 0; j < tab[i].length; j++) {
+                tab[i][j] -= factor * tab[pivotRowIndex][j];
+            }
+        }
+    }
+
+    var table = "<table border='1'>";
+    for (var row = 0; row < tab.length; row++) {
+        table += "<tr>";
+        for (var col = 0; col < tab[row].length; col++) {
+            table += "<td>" + tab[row][col] + "</td>";
+        }
+        table += "</tr>";
+    }
+    table += "</table>";
+    document.getElementById("Gauss2").innerHTML = table;
+}
+
+function updateVariables() {
+    basicVariables = [];
+    nonBasicVariables = [];
+
+    // Parcourez le tableau pour trouver les variables de base et hors base
+    for (var i = 1; i < tableau[0].length - 1; i++) {
+        var isBasic = true;
+        for (var j = 1; j < tableau.length; j++) {
+            if (tableau[j][i] !== 0 && tableau[j][i] !== 1) {
+                isBasic = false;
+                break;
+            }
+        }
+        if (isBasic) {
+            basicVariables.push(i);
+        } else {
+            nonBasicVariables.push(i);
+        }
+    }
+}
+
+
+function Test() {
+    var tab = tableau;
+
+    // Test si il y a un nombre negatif dans la première ligne du tableau
+    var negativeFound = false;
+    for (var i = 1; i < tab[0].length; i++) {
+        if (tab[0][i] < 0) {
+            negativeFound = true;
+            break;
+        }
+    }
+    // Si oui on repete les operrations precedentes
+    if (negativeFound) {
+        PivotC();
+        PivotR();
+        Gauss1();
+        Gauss2();
+    } else {
+        // Sinon on affiche la solution optimale avec les vb et vhb
+
+        var zValue = tab[0][tab[0].length - 1];
+        document.getElementById("zvalue").innerHTML = "z = " + zValue;
+
+        updateVariables();
+
+        var basicVariablesOutput = "Variables de base: ";
+        for (var i = 0; i < basicVariables.length; i++) {
+            var index = basicVariables[i];
+            basicVariablesOutput += "x" + index + " = " + tab[i + 1][tab[0].length - 1];
+            if (i < basicVariables.length - 1) {
+                basicVariablesOutput += ", ";
+            }
+        }
+        document.getElementById("vbOutput").innerHTML = basicVariablesOutput;
+
+        var nonBasicVariablesOutput = "Variables hors base: ";
+        for (var i = 0; i < nonBasicVariables.length; i++) {
+            var index = nonBasicVariables[i];
+            nonBasicVariablesOutput += "x" + index + " = 0";
+            if (i < nonBasicVariables.length - 1) {
+                nonBasicVariablesOutput += ", ";
+            }
+        }
+        document.getElementById("vhbOutput").innerHTML = nonBasicVariablesOutput;
+    }
+}
+
+
+    </script>
+</body>
+</html>
